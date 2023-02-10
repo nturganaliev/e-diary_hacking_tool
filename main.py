@@ -100,16 +100,15 @@ def main():
     group_letter = schoolkid.group_letter
     year_of_study = schoolkid.year_of_study
 
-    try:
-        lesson = Lesson.objects.filter(
-            subject__title__contains=args.subject,
-            group_letter=group_letter,
-            year_of_study=year_of_study
-        )
-        lesson = random.choice(lesson)
-    except Lesson.DoesNotExist:
+    lessons = Lesson.objects.filter(
+        subject__title__contains=args.subject,
+        group_letter=group_letter,
+        year_of_study=year_of_study
+    )
+    if not lessons:
         print("Нет записей по этому запросу.")
         return
+    lesson = random.choice(lessons)
     create_commendation(schoolkid, lesson)
 
 
