@@ -12,7 +12,7 @@
 ## Запуск
 
 - Скачайте скрипт корневую папку проекта [e-diary](https://github.com/nturganaliev/e-diary)
-- Запустите скрипт командой `python main.py`
+- Для добавления похвалы, запустите скрипт командой `python main.py "Ф.И.О. школьника" "название предмета"`
 - По e-diary, нужно прочитать README.md [e-diary](https://github.com/nturganaliev/e-diary)
 
 
