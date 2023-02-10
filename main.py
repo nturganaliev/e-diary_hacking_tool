@@ -4,6 +4,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project.settings")
 import django
 django.setup()
 
+import argparse
 import random
 
 from datacenter.models import Commendation
@@ -11,7 +12,7 @@ from datacenter.models import Lesson
 from datacenter.models import Schoolkid
 
 
-commendations = [
+COMMENDATIONS = [
     'Молодец!',
     'Отлично!',
     'Хорошо!',
@@ -44,48 +45,72 @@ commendations = [
     'Теперь у тебя точно все получится!'
 ]
 
-def fix_marks(name):
-    schoolkid = Schoolkid.objects.get(full_name__contains=name)
+
+def fix_marks(schoolkid):
     schoolkid.mark_set.filter(points__lte=3).update(points=5)
     return
 
 
-def remove_chastisements(name):
-    schoolkid = Schoolkid.objects.get(full_name__contains=name)
+def remove_chastisements(schoolkid):
     schoolkid.chastisement_set.all().delete()
     return
 
 
-def create_commendation(name, subject):
-    schoolkid = Schoolkid.objects.get(full_name__contains=name)
-    year_of_study = schoolkid.year_of_study
-    group_letter = schoolkid.group_letter
+def create_commendation(schoolkid, lesson):
+    text = random.choice(COMMENDATIONS)
 
-    text = random.choice(commendations)
-
-    lessons = Lesson.objects.filter(
-        subject__title__contains=subject,
-        group_letter=group_letter,
-        year_of_study=year_of_study
-    ).order_by('date')
-    for lesson in lessons:
-        if not lesson.subject.commendation_set.filter(
+    if not lesson.subject.commendation_set.filter(
+        schoolkid=schoolkid,
+        created=lesson.date,
+    ):
+        c = Commendation.objects.create(
+            text=text,
+            created=lesson.date,
             schoolkid=schoolkid,
-            created=lesson.date
-        ):
-            c = Commendation.objects.create(
-                text=text,
-                created=lesson.date,
-                schoolkid=schoolkid,
-                subject=lesson.subject,
-                teacher=lesson.teacher
-            )
-            print(c.text)
-            break
+            subject=lesson.subject,
+            teacher=lesson.teacher
+        )
+        print(c.text)
+    else:
+        print('Уже похвалили.')
 
 
 def main():
-    create_commendation("Фролов Иван", "Музыка")
+    parser = argparse.ArgumentParser(
+        description=("Похвалить ученика по выбрав предмет"
+                     "посещаемый этим учеником")
+    )
+    parser.add_argument(
+        'name', type=str, help='Schoolkid name'
+    )
+    parser.add_argument(
+        'subject', type=str, help='Subject name'
+    )
+    args = parser.parse_args()
+
+    try:
+        schoolkid = Schoolkid.objects.get(full_name__contains=args.name)
+    except Schoolkid.DoesNotExist:
+        print("Нет записей по этому запросу.")
+        return
+    except Schoolkid.MultipleObjectsReturned:
+        print("По запросу найдено несколько записей, введите полное ФИО")
+        return
+
+    group_letter = schoolkid.group_letter
+    year_of_study = schoolkid.year_of_study
+
+    try:
+        lesson = Lesson.objects.filter(
+            subject__title__contains=args.subject,
+            group_letter=group_letter,
+            year_of_study=year_of_study
+        )
+        lesson = random.choice(lesson)
+    except Lesson.DoesNotExist:
+        print("Нет записей по этому запросу.")
+        return
+    create_commendation(schoolkid, lesson)
 
 
 if __name__ == '__main__':
